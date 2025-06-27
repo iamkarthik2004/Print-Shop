@@ -10,7 +10,7 @@ from app.db.models import User
 from app.core.security import hash_password, verify_password
 from app.core.types import RoleTypes
 from app.utils.jwt_handler import create_access_token
-from app.dependencies import get_current_user
+
 
 router = APIRouter(tags=["Authentication"], prefix="/auth")
 
@@ -53,21 +53,4 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.post("/promote/{user_id}", status_code=status.HTTP_200_OK)
-async def promote_user(user_id: int, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    if current_user["role"] != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins can promote users"
-        )
 
-    user = await db.get(User, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    if user.role == "admin":
-        raise HTTPException(status_code=400, detail="User is already an admin")
-
-    user.role = RoleTypes.admin.value
-    await db.commit()
-    return {"message": f"User {user_id} promoted to admin by {current_user['username']}"}
