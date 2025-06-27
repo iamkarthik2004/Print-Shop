@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+psycopg2-binary
+sqlalchemy
+python-dotenv
+asyncpg
+pyjwt
+passlib
+python-jose
+python-multipart
+bcrypt
+supabase
+requests
+alembic
+supabase-py[async]
