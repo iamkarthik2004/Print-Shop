@@ -27,6 +27,14 @@ class PrintFiles(Base, AsyncAttrs):
 
     print_request = relationship("PrintRequest", back_populates="files")
 
+class PrintPricing(Base, AsyncAttrs):
+    __tablename__ = "print_pricing"
+
+    id = Column(Integer, primary_key=True)
+    key = Column(String, unique=True, nullable=False)
+    value = Column(DECIMAL(10, 2), nullable=False)
+
+
 
 class PrintRequest(Base, AsyncAttrs):
     __tablename__ = "print_request"
