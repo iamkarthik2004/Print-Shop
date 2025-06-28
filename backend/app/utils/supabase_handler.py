@@ -22,7 +22,7 @@ async def upload_to_supabase(path: str,file):
         file = content,
         file_options = {"content-type": file.content_type, "upsert": False}
     )
-    print(f"[DEBUG] {response}")
+    # print(f"[DEBUG] {response}")
     # if response.code != 200:
     #     raise Exception("Supabase upload failed (non-200 response)")
 

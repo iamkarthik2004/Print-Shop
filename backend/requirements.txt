@@ -12,4 +12,4 @@ bcrypt
 supabase
 requests
 alembic
-supabase-py[async]
+fitz

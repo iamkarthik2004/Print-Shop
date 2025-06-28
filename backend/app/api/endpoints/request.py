@@ -2,13 +2,12 @@
 from fastapi import APIRouter, Depends, status, UploadFile, File, Form, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.db import get_db
-from app.dependencies import get_current_user, user_exists
-from app.db.models import User, PrintRequest
+from app.dependencies import user_exists
+from app.db.models import User, PrintRequest, PrintFiles
 from app.core.types import OrientationTypes, SidesTypes
-from app.utils.supabase_handler import upload_to_supabase, remove_from_supabase
+from app.utils.print_utils import calculate_total_pages_and_paths
 from datetime import datetime, timezone
-import uuid
-import os
+
 
 router = APIRouter(
     prefix="/request",
@@ -21,41 +20,36 @@ async def create_print_request(
     sides: SidesTypes = Form(...),
     orientation: OrientationTypes = Form(...),
     pages: str = Form(...),
-    file: UploadFile = File(...),
+    files: list[UploadFile] = File(...),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(user_exists)
 ):
-    if not file.filename:
+    if not files:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No file provided")
 
-    file_extension = os.path.splitext(file.filename)[1].lower()
-    if file_extension not in {".pdf", ".doc", ".docx", ".jpeg", ".jpg", ".png"}:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file type")
-
-    unique_filename = f"{uuid.uuid4()}{file_extension}"
-    file_path = f"print-request/{user.username}/{unique_filename}"
-
     try:
-        new_file_path = await upload_to_supabase(file_path, file)
+        file_paths, total_pages = await calculate_total_pages_and_paths(files, user.username)
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"File upload or page count failed: {str(e)}")
 
     new_request = PrintRequest(
         user_id=user.id,
-        file_path=new_file_path,
         color=color,
         sides=sides,
         orientation=orientation,
-        pages=pages,
-        status="waiting",
-        created_at=datetime.now(timezone.utc)
+        no_of_pages=total_pages,
+        custom_pages=pages,
+        created_at=datetime.now(timezone.utc),
+        files=[PrintFiles(file_path=url) for url in file_paths]
     )
+
     try:
         db.add(new_request)
         await db.commit()
         await db.refresh(new_request)
     except Exception as e:
-        await remove_from_supabase(file_path)
         raise HTTPException(500, f"DB error: {str(e)}")
 
     return {"message": f"Print request created for {user.username}"}
