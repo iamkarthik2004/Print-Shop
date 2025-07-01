@@ -1,8 +1,10 @@
-# Ignore pycache and .pyc
-**/__pycache__/
-**/*.pyc
-
+# Ignore virtual environment
 venv/
 .env
 
-../.idea/
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+
+# Ignore IDE settings
+.idea/
