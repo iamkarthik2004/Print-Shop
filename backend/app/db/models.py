@@ -62,6 +62,6 @@ class Payment(Base, AsyncAttrs):
     print_request_id = Column(Integer, ForeignKey("print_request.id"))
     amount = Column(DECIMAL(10, 2), nullable=False)
     payment_method = Column(String, nullable=False)
-    paid_at = Column(TIMESTAMP(timezone=True))
+    paid_at = Column(TIMESTAMP(timezone=True), nullable=True)
 
     print_request = relationship("PrintRequest", back_populates="payment")

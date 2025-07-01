@@ -1,6 +1,8 @@
+# Ignore pycache and .pyc
 **/__pycache__/
 **/*.pyc
 
 venv/
 .env
+
 ../.idea/

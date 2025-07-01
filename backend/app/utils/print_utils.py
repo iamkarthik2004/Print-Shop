@@ -1,13 +1,47 @@
 import uuid
 import os
 from fastapi import UploadFile, HTTPException
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import fitz
+from fastapi.params import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from decimal import Decimal
+
+from sqlalchemy.future import select
+import re
+from app.core.types import SidesTypes, OrientationTypes
+from app.db.db import get_db
+from app.db.models import PrintPricing
 from app.utils.supabase_handler import upload_to_supabase
 
 ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx", ".jpeg", ".jpg", ".png"}
 
-async def calculate_total_pages_and_paths(files: List[UploadFile], username: str) -> Tuple[List[str], int]:
+def parse_custom_pages(custom_pages: str, max_page: int) -> int:
+    pages_set = set()
+
+    for part in custom_pages.split(","):
+        part = part.strip()
+        if "-" in part:
+            start, end = part.split("-")
+            start = int(start)
+            end = int(end)
+            if start < 1 or end > max_page or start > end:
+                raise ValueError(f"Invalid range: {start}-{end}")
+            pages_set.update(range(start, end + 1))
+        else:
+            num = int(part)
+            if num < 1 or num > max_page:
+                raise ValueError(f"Page number out of range: {num}")
+            pages_set.add(num)
+
+    return len(pages_set)
+
+
+async def calculate_total_pages_and_paths(
+        files: List[UploadFile],
+        username: str,
+        custom_pages: Optional[str] = None
+) -> Tuple[List[str], int]:
     uploaded_paths = []
     total_pages = 0
 
@@ -25,10 +59,43 @@ async def calculate_total_pages_and_paths(files: List[UploadFile], username: str
 
         if file_extension == ".pdf":
             file.file.seek(0)
-            with fitz.open(stream=await file.read(), filetype="pdf") as pdf:
-                total_pages += pdf.page_count
+            file_bytes = await file.read()
+            with fitz.open(stream=file_bytes, filetype="pdf") as pdf:
+                max_page = pdf.page_count
+
+                if custom_pages:
+                    try:
+                        total_pages += parse_custom_pages(custom_pages, max_page)
+                    except ValueError as e:
+                        raise HTTPException(status_code=400, detail=f"Custom page error: {str(e)}")
+                else:
+                    total_pages += max_page
         else:
-            # Count 1 page per non-PDF file (or adjust logic as needed)
+            # Non-pdf treated as 1 page
             total_pages += 1
 
     return uploaded_paths, total_pages
+
+
+async def calculate_total_cost(
+        color: bool,
+        sides: SidesTypes,
+        orientation: OrientationTypes,
+        pages: int,
+        db: AsyncSession
+) -> Decimal:
+    keys = []
+    if color:
+        keys.append("color")
+    else:
+        keys.append("bw")
+    keys.append(sides.lower())
+    keys.append(orientation.lower())
+
+    prices = (await db.execute(
+        select(PrintPricing).where(PrintPricing.key.in_(keys))
+    )).scalars().all()
+
+    base_cost = sum(p.value for p in prices)
+    total_cost = base_cost * Decimal(pages)
+    return total_cost

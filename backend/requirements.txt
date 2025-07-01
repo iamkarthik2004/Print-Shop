@@ -13,3 +13,4 @@ supabase
 requests
 alembic
 fitz
+reportlab
