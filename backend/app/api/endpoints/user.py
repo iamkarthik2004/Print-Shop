@@ -14,7 +14,7 @@ router = APIRouter(
     tags=["user"]
 )
 
-@router.patch("/update-user")
+@router.patch("/update-user/")
 async def update_user(
         body: dict,
         db: AsyncSession = Depends(get_db),

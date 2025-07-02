@@ -15,7 +15,7 @@ from app.utils.jwt_handler import create_access_token
 router = APIRouter(tags=["Authentication"], prefix="/auth")
 
 
-@router.post("/signup", status_code=status.HTTP_201_CREATED)
+@router.post("/signup/", status_code=status.HTTP_201_CREATED)
 async def signup(body: UserCreate, db: AsyncSession = Depends(get_db)):
     user_exists = await db.execute(select(User).filter(User.username == body.username))
     if user_exists.scalars().first():
@@ -38,7 +38,7 @@ async def signup(body: UserCreate, db: AsyncSession = Depends(get_db)):
     return {"message": f"User {new_user.username} created"}
 
 
-@router.post("/login", status_code=status.HTTP_200_OK)
+@router.post("/login/", status_code=status.HTTP_200_OK)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).filter(User.username == form_data.username))
     user = result.scalars().first()

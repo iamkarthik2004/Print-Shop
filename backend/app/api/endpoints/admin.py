@@ -15,7 +15,7 @@ router = APIRouter(
 )
 
 
-@router.get("/get-users", response_model=list[UserResponse])
+@router.get("/get-users/", response_model=list[UserResponse])
 async  def get_users(
         db: AsyncSession = Depends(get_db),
         current_user = Depends(get_current_user)
@@ -27,7 +27,7 @@ async  def get_users(
 
     return users
 
-@router.get("/get-user/{user_id}", response_model=UserResponse)
+@router.get("/get-user/{user_id}/", response_model=UserResponse)
 async def get_user_by_id(
         user_id: int,
         db: AsyncSession = Depends(get_db),
@@ -43,7 +43,7 @@ async def get_user_by_id(
 
     return specific_user
 
-@router.get("/print-requests/get-requests")
+@router.get("/print-requests/get-requests/")
 async def get_print_requests(
         db: AsyncSession = Depends(get_db),
         admin: User = Depends(require_admin_user)
@@ -55,7 +55,7 @@ async def get_print_requests(
         )
     return requests
 
-@router.get("/print-requests/{print_request_id}")
+@router.get("/print-requests/{print_request_id}/")
 async def get_specific_print_request(
         print_request_id: int,
         db: AsyncSession = Depends(get_db),
@@ -69,7 +69,7 @@ async def get_specific_print_request(
         )
     return request
 
-@router.patch("/print-requests/{print_request_id}/update-status-to-completed")
+@router.patch("/print-requests/{print_request_id}/update-status-to-completed/")
 async def update_print_request(
         print_request_id: int,
         db: AsyncSession = Depends(get_db),
@@ -88,7 +88,7 @@ async def update_print_request(
 
     return {"message": f"Status of print request {print_request_id} updated to completed."}
 
-@router.post("/promote/{user_id}", status_code=status.HTTP_200_OK)
+@router.post("/promote/{user_id}/", status_code=status.HTTP_200_OK)
 async def promote_user(
         user_id: int,
         db: AsyncSession = Depends(get_db),
@@ -105,7 +105,7 @@ async def promote_user(
     await db.commit()
     return {"message": f"User {user_id} promoted to admin by {admin.username}"}
 
-@router.patch("/demote/{user_id}", status_code=status.HTTP_200_OK)
+@router.patch("/demote/{user_id}/", status_code=status.HTTP_200_OK)
 async def demote_user(
         db: AsyncSession = Depends(get_db),
         admin: User = Depends(require_admin_user)
@@ -120,7 +120,7 @@ async def demote_user(
     return {"message": f"{user.username} demoted by {admin.username}"}
 
 
-@router.post("/update-price")
+@router.post("/update-price/")
 async def update_price(
         body: dict,
         db: AsyncSession = Depends(get_db),
@@ -132,11 +132,10 @@ async def update_price(
     updated_items = []
 
     for key, new_value in body.items():
-        result = await db.execute(select(PrintPricing).where(PrintPricing.key == key))
-        price_obj = result.scalars().first()
+        result = (await db.execute(select(PrintPricing).where(PrintPricing.key == key))).scalars().first()
 
-        if price_obj:
-            price_obj.value = new_value
+        if result:
+            result.value = new_value
             updated_items.append({key: new_value})
         else:
             new_price = PrintPricing(key=key, value=new_value)      #add new if not exists
@@ -149,7 +148,7 @@ async def update_price(
         "updated": updated_items
     }
 
-@router.get("/payments", response_model=list[PaymentResponse])
+@router.get("/payments/", response_model=list[PaymentResponse])
 async def get_all_payments(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin_user)
@@ -161,7 +160,7 @@ async def get_all_payments(
         )
     return payments
 
-@router.get("/payments/{payment_id}", response_model=PaymentResponse)
+@router.get("/payments/{payment_id}/", response_model=PaymentResponse)
 async def get_payment_by_id(
         payment_id: int,
         db: AsyncSession = Depends(get_db),
@@ -174,7 +173,7 @@ async def get_payment_by_id(
         )
     return payment
 
-@router.get("/payments/by-username/{username}", response_model=PaymentResponse)
+@router.get("/payments/by-username/{username}/", response_model=PaymentResponse)
 async def get_payments_by_username(
     username: str,
     db: AsyncSession = Depends(get_db),

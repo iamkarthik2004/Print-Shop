@@ -44,7 +44,7 @@ class PrintRequest(Base, AsyncAttrs):
     color = Column(Boolean, nullable=False, default=False)
     sides = Column(String, nullable=False)
     orientation = Column(String, nullable=False)
-    custom_pages = Column(String(50), nullable=False)
+    custom_pages = Column(String(250), nullable=False)
     no_of_pages = Column(Integer, nullable=False)
     status = Column(String, nullable=False, default="waiting")
     payment_status = Column(String, nullable=False, default="pending")

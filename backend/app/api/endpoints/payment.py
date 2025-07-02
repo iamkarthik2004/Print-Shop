@@ -14,7 +14,7 @@ router = APIRouter(
     tags=["payment"]
 )
 
-@router.post("/{payment_id}")
+@router.post("/{payment_id}/")
 async def simulate_successful_payment(
     payment_id: int,
     db: AsyncSession = Depends(get_db),
@@ -35,7 +35,7 @@ async def simulate_successful_payment(
     }
 
 
-@router.get("/payments/{payment_id}/receipt")
+@router.get("/payments/{payment_id}/receipt/")
 async def download_payment_receipt(
     payment_id: int,
     db: AsyncSession = Depends(get_db),

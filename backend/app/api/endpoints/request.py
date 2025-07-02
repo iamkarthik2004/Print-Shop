@@ -1,6 +1,10 @@
 # app/api/routes/request.py
+from typing import Optional
 from fastapi import APIRouter, Depends, status, UploadFile, File, Form, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
+
 from app.db.db import get_db
 from app.dependencies import user_exists
 from app.db.models import User, PrintRequest, PrintFiles, Payment
@@ -9,6 +13,7 @@ from app.utils.pdf_generator import generate_summary_pdf
 from app.utils.print_utils import calculate_total_pages_and_paths, calculate_total_cost
 from datetime import datetime, timezone
 from fastapi.responses import StreamingResponse
+import json
 
 
 router = APIRouter(
@@ -16,12 +21,12 @@ router = APIRouter(
     tags=["request"]
 )
 
-@router.post("/print-requests", status_code=status.HTTP_201_CREATED)
+@router.post("/print-requests/", status_code=status.HTTP_201_CREATED)
 async def create_print_request(
     color: bool = Form(...),
     sides: SidesTypes = Form(...),
     orientation: OrientationTypes = Form(...),
-    custom_pages: str = Form(...),
+    custom_pages: Optional[str] = Form(...),
     files: list[UploadFile] = File(...),
     payment_method: PaymentMethodTypes = Form(...),
     db: AsyncSession = Depends(get_db),
@@ -29,9 +34,14 @@ async def create_print_request(
 ):
     if not files:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No file provided")
-
+    custom_pages_map = {}
+    if custom_pages:
+        try:
+            custom_pages_map = json.loads(custom_pages)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON for custom_pages")
     try:
-        file_paths, total_pages = await calculate_total_pages_and_paths(files, user.username, custom_pages)
+        file_paths, total_pages = await calculate_total_pages_and_paths(files, user.username, custom_pages_map)
         amount = await calculate_total_cost(color=color, sides=sides.value, orientation=orientation.value, pages=total_pages, db=db)
     except HTTPException as e:
         raise e
@@ -79,13 +89,17 @@ async def create_print_request(
     }
 
 
-@router.get("/print-requests/{id}/summary")
+@router.get("/print-requests/{print_request_id}/summary/")
 async def download_summary_pdf(
-        id: int,
+        print_request_id: int,
         db: AsyncSession = Depends(get_db),
         user: User = Depends(user_exists)
 ):
-    request = await db.get(PrintRequest, id)
+    request = (await db.execute(
+        select(PrintRequest)
+        .options(selectinload(PrintRequest.payment))
+        .where(PrintRequest.id == print_request_id)
+    )).scalar_one_or_none()
     if not request or request.user_id != user.id:
         raise HTTPException(status_code=404, detail="Print request not found")
 

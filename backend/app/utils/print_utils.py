@@ -3,14 +3,11 @@ import os
 from fastapi import UploadFile, HTTPException
 from typing import List, Tuple, Optional
 import fitz
-from fastapi.params import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from decimal import Decimal
-
 from sqlalchemy.future import select
 import re
 from app.core.types import SidesTypes, OrientationTypes
-from app.db.db import get_db
 from app.db.models import PrintPricing
 from app.utils.supabase_handler import upload_to_supabase
 
@@ -40,7 +37,7 @@ def parse_custom_pages(custom_pages: str, max_page: int) -> int:
 async def calculate_total_pages_and_paths(
         files: List[UploadFile],
         username: str,
-        custom_pages: Optional[str] = None
+        custom_pages_map: Optional[str] = None
 ) -> Tuple[List[str], int]:
     uploaded_paths = []
     total_pages = 0
@@ -62,10 +59,12 @@ async def calculate_total_pages_and_paths(
             file_bytes = await file.read()
             with fitz.open(stream=file_bytes, filetype="pdf") as pdf:
                 max_page = pdf.page_count
+                file_key = file.filename
 
-                if custom_pages:
+                if custom_pages_map and file_key in custom_pages_map:
                     try:
-                        total_pages += parse_custom_pages(custom_pages, max_page)
+                        page_count = parse_custom_pages(custom_pages_map[file_key], max_page)
+                        total_pages += page_count
                     except ValueError as e:
                         raise HTTPException(status_code=400, detail=f"Custom page error: {str(e)}")
                 else:
