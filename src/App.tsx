@@ -4,7 +4,7 @@ import Navbar from './components/Navbar'; // Navigation Bar
 import MainLanding from './components/MainLanding'; // New Landing Page
 import PrintForm from './components/PrintForm'; // Home Page - Start New Job
 import PrintHistory from './components/PrintHistory'; // Home Page - Print History
-import PaymentPage from './components/Paymentpage'; // Payment Page
+import PaymentPage from './components/PaymentPage'; // Payment Page
 import UploadedFiles from './components/UploadedFiles'; // History Page
 import ServicesPricing from './components/ServicesPricing'; // Services Page
 import './App.css';
@@ -15,10 +15,10 @@ const App: React.FC = () => {
       <Navbar />
       <main className="main-content">
         <Routes>
-          {/* 🏠 Landing Page */}
+          {/*Landing Page */}
           <Route path="/" element={<MainLanding />} />
 
-          {/* 📄 Dashboard: New Job + History */}
+          {/*Dashboard: New Job + History */}
           <Route
             path="/dashboard"
             element={
@@ -29,13 +29,13 @@ const App: React.FC = () => {
             }
           />
 
-          {/* 🧾 Services */}
+          {/*Services */}
           <Route path="/services" element={<ServicesPricing />} />
 
-          {/* 📂 History */}
+          {/*History */}
           <Route path="/history" element={<UploadedFiles />} />
 
-          {/* 💳 Payment */}
+          {/*Payment */}
           <Route path="/payment" element={<PaymentPage />} />
         </Routes>
       </main>
